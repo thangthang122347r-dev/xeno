@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sổ Tiết Kiệm Mobile</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            dark: '#0f172a'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Custom scrollbar for mobile lists */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Touch feedback active effect */
+        .btn-active:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex justify-center text-slate-800">
+
+    <!-- Container giới hạn kích thước chuẩn Mobile Phone -->
+    <div class="w-full max-w-md bg-slate-50 min-h-screen flex flex-col shadow-2xl relative pb-20">
+
+        <!-- Header Bar -->
+        <header class="bg-slate-900 text-white p-4 sticky top-0 z-30 flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center space-x-2">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-wide">Ví Tiết Kiệm</h1>
+                    <p class="text-xs text-slate-400" id="current-month-year">Tháng --/----</p>
+                </div>
+            </div>
+            <button onclick="openSettlementModal()" class="btn-active bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 text-xs px-3 py-1.5 rounded-full font-medium border border-emerald-500/30 flex items-center space-x-1.5">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Tổng kết tháng</span>
+            </button>
+        </header>
+
+        <!-- Main Scrollable Content -->
+        <main class="flex-1 p-4 space-y-4 overflow-y-auto no-scrollbar">
+
+            <!-- Thẻ Tổng Số Dư -->
+            <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 rounded-2xl p-5 text-white shadow-lg border border-slate-700/50 relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
+                <div class="flex justify-between items-center text-slate-400 text-xs mb-1">
+                    <span>Tổng Số Dư Hiện Tại</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-500/20 text-emerald-300">
+                        <i class="fa-solid fa-[#22c55e] fa-shield-halved mr-1"></i> Tích lũy
+                    </span>
+                </div>
+                <div class="text-3xl font-extrabold tracking-tight text-white my-1" id="total-balance">
+                    0 <span class="text-lg font-normal text-slate-300">đ</span>
+                </div>
+
+                <!-- Thống kê Thu / Chi trong tháng -->
+                <div class="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-700/60 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-down text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-[10px]">Đã nạp tháng này</p>
+                            <p class="font-semibold text-emerald-400" id="month-income">+0 đ</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center">
+                            <i class="fa-solid fa-arrow-up text-xs"></i>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-[10px]">Đã tiêu tháng này</p>
+                            <p class="font-semibold text-rose-400" id="month-expense">-0 đ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Biểu đồ Xu Hướng Số Tiền -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-chart-line text-emerald-500"></i>
+                        Biểu đồ biến động số dư
+                    </h2>
+                    <span class="text-[10px] text-slate-400">10 giao dịch gần nhất</span>
+                </div>
+                <div class="h-40 w-full relative">
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Phím Nạp / Trừ Nhanh (Quick Actions) -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
+                <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-amber-500"></i>
+                    Thao tác nhanh 1 chạm
+                </h2>
+
+                <!-- Nạp Nhanh (+) -->
+                <div>
+                    <p class="text-[11px] font-medium text-emerald-600 mb-1.5 flex items-center gap-1">
+                        <i class="fa-solid fa-plus-circle"></i> Nạp / Tiết kiệm nhanh:
+                    </p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="quickTransaction('income', 200000, 'Nạp nhanh +200k')" 
+                                class="btn-active bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold py-2 px-1 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                            +200k
+                        </button>
+                        <button onclick="quickTransaction('income', 500000, 'Nạp nhanh +500k')" 
+                                class="btn-active bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold py-2 px-1 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                            +500k
+                        </button>
+                        <button onclick="quickTransaction('income', 1000000, 'Nạp nhanh +1M')" 
+                                class="btn-active bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold py-2 px-1 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                            +1,000k
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Chi Nhanh (-) -->
+                <div>
+                    <p class="text-[11px] font-medium text-rose-600 mb-1.5 flex items-center gap-1">
+                        <i class="fa-solid fa-minus-circle"></i> Chi tiêu nhanh:
+                    </p>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="quickTransaction('expense', 50000, 'Chi tiêu nhanh -50k')" 
+                                class="btn-active bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold py-2 px-1 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                            -50k
+                        </button>
+                        <button onclick="quickTransaction('expense', 100000, 'Chi tiêu nhanh -100k')" 
+                                class="btn-active bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold py-2 px-1 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                            -100k
+                        </button>
+                        <button onclick="quickTransaction('expense', 200000, 'Chi tiêu nhanh -200k')" 
+                                class="btn-active bg-rose-50 hover:bg-rose-100 text-rose-200 text-rose-700 border border-rose-200 font-semibold py-2 px-1 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                            -200k
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Nút Nhập Tùy Chỉnh -->
+                <button onclick="openCustomModal()" 
+                        class="btn-active w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-sm mt-1">
+                    <i class="fa-solid fa-sliders text-amber-400"></i>
+                    Nhập số tiền & ghi chú tùy chỉnh
+                </button>
+            </div>
+
+            <!-- Danh Sách Giao Dịch Gần Đây -->
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left text-slate-500"></i>
+                        Lịch sử giao dịch
+                    </h2>
+                    <button onclick="confirmClearAll()" class="text-[11px] text-rose-500 hover:underline">Xóa tất cả</button>
+                </div>
+
+                <div id="transaction-list" class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                    <!-- Sẽ render tự động qua JS -->
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Navigation Bar cố định bên dưới (Tùy chọn thao tác nhanh) -->
+        <nav class="fixed bottom-0 max-w-md w-full bg-white border-t border-slate-200 px-6 py-2 flex justify-around items-center z-20 shadow-lg">
+            <button onclick="openCustomModal('income')" class="btn-active flex flex-col items-center text-emerald-600">
+                <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mb-0.5">
+                    <i class="fa-solid fa-plus text-lg"></i>
+                </div>
+                <span class="text-[10px] font-medium">Tiết kiệm</span>
+            </button>
+
+            <button onclick="openSettlementModal()" class="btn-active flex flex-col items-center text-slate-600">
+                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mb-0.5">
+                    <i class="fa-solid fa-calendar-check text-slate-700 text-base"></i>
+                </div>
+                <span class="text-[10px] font-medium">Báo cáo tháng</span>
+            </button>
+
+            <button onclick="openCustomModal('expense')" class="btn-active flex flex-col items-center text-rose-600">
+                <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center mb-0.5">
+                    <i class="fa-solid fa-minus text-lg"></i>
+                </div>
+                <span class="text-[10px] font-medium">Chi tiêu</span>
+            </button>
+        </nav>
+
+        <!-- MODAL 1: Nhập Số Tiền Tùy Chỉnh -->
+        <div id="customModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
+            <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 shadow-2xl space-y-4 animate-slide-up">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-emerald-600"></i>
+                        Nhập Giao Dịch Tùy Chỉnh
+                    </h3>
+                    <button onclick="closeCustomModal()" class="text-slate-400 hover:text-slate-600 p-1">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <form id="customForm" onsubmit="handleCustomSubmit(event)" class="space-y-3.5">
+                    <!-- Chọn loại -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Loại giao dịch</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="cursor-pointer">
+                                <input type="radio" name="txType" value="income" id="typeIncome" class="peer hidden" checked>
+                                <div class="p-2.5 text-center text-xs font-semibold rounded-xl border border-slate-200 peer-checked:bg-emerald-50 peer-checked:border-emerald-500 peer-checked:text-emerald-700 transition">
+                                    <i class="fa-solid fa-circle-plus mr-1"></i> Tiết kiệm / Nạp (+)
+                                </div>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="txType" value="expense" id="typeExpense" class="peer hidden">
+                                <div class="p-2.5 text-center text-xs font-semibold rounded-xl border border-slate-200 peer-checked:bg-rose-50 peer-checked:border-rose-500 peer-checked:text-rose-700 transition">
+                                    <i class="fa-solid fa-circle-minus mr-1"></i> Chi tiêu (-)
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Số tiền -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Số tiền (VNĐ)</label>
+                        <div class="relative">
+                            <input type="number" id="customAmount" placeholder="VD: 150000" required step="1000" min="1000"
+                                   class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">VNĐ</span>
+                        </div>
+                    </div>
+
+                    <!-- Ghi chú -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Ghi chú (Tùy chọn)</label>
+                        <input type="text" id="customNote" placeholder="VD: Ăn sáng, Lương phụ, Mua sách..."
+                               class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    </div>
+
+                    <!-- Button -->
+                    <div class="pt-2">
+                        <button type="submit" class="btn-active w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl text-xs shadow-md">
+                            Xác Nhận Lưu Giao Dịch
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL 2: Thống Kê & Tổng Kết Tháng -->
+        <div id="settlementModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-4 relative">
+                <button onclick="closeSettlementModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+
+                <div class="text-center pt-2">
+                    <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-award"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-800 text-lg">Báo Cáo Tổng Kết Tháng</h3>
+                    <p class="text-xs text-slate-500" id="settlement-period">Tháng --/----</p>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2.5 text-xs">
+                    <div class="flex justify-between items-center text-slate-600">
+                        <span><i class="fa-solid fa-arrow-down text-emerald-500 mr-1.5"></i>Tổng tiền đã nạp:</span>
+                        <span class="font-semibold text-emerald-600" id="settlement-income">0 đ</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-600">
+                        <span><i class="fa-solid fa-arrow-up text-rose-500 mr-1.5"></i>Tổng tiền đã tiêu:</span>
+                        <span class="font-semibold text-rose-600" id="settlement-expense">0 đ</span>
+                    </div>
+                    <div class="border-t border-slate-200 pt-2 flex justify-between items-center font-bold text-sm">
+                        <span class="text-slate-800">Tích lũy ròng trong tháng:</span>
+                        <span id="settlement-net" class="text-emerald-600">0 đ</span>
+                    </div>
+                </div>
+
+                <div id="settlement-message" class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center text-xs text-emerald-800 font-medium">
+                    <!-- Thông báo tự động -->
+                </div>
+
+                <button onclick="closeSettlementModal()" class="btn-active w-full bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-xl text-xs">
+                    Đóng Báo Cáo
+                </button>
+            </div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-4 py-2.5 rounded-full shadow-lg z-50 hidden flex items-center space-x-2 transition-all">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toast-msg">Đã cập nhật thành công!</span>
+        </div>
+
+    </div>
+
+    <!-- JavaScript App Logic -->
+    <script>
+        // State Management
+        let transactions = [];
+        let balanceChart = null;
+
+        // Init App
+        window.onload = function () {
+            loadDataFromStorage();
+            updateMonthHeader();
+            renderUI();
+            initChart();
+        };
+
+        // Lấy ngày tháng hiện tại
+        function updateMonthHeader() {
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const year = now.getFullYear();
+            document.getElementById('current-month-year').innerText = `Tháng ${month < 10 ? '0' + month : month}/${year}`;
+            document.getElementById('settlement-period').innerText = `Dữ liệu tính đến Tháng ${month}/${year}`;
+        }
+
+        // LocalStorage logic
+        function loadDataFromStorage() {
+            const stored = localStorage.getItem('savings_app_data');
+            if (stored) {
+                try {
+                    transactions = JSON.parse(stored);
+                } catch (e) {
+                    transactions = [];
+                }
+            } else {
+                // Dữ liệu mẫu ban đầu nếu trống
+                transactions = [
+                    { id: 1, type: 'income', amount: 2000000, note: 'Tích lũy đầu tháng', date: new Date().toISOString() },
+                    { id: 2, type: 'expense', amount: 100000, note: 'Ăn uống nhanh', date: new Date().toISOString() }
+                ];
+                saveDataToStorage();
+            }
+        }
+
+        function saveDataToStorage() {
+            localStorage.setItem('savings_app_data', JSON.stringify(transactions));
+        }
+
+        // Định dạng tiền tệ VNĐ
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount);
+        }
+
+        // Thực hiện giao dịch nhanh
+        function quickTransaction(type, amount, defaultNote) {
+            const newTx = {
+                id: Date.now(),
+                type: type,
+                amount: Number(amount),
+                note: defaultNote,
+                date: new Date().toISOString()
+            };
+            transactions.unshift(newTx);
+            saveDataToStorage();
+            renderUI();
+            showToast(type === 'income' ? `+${formatMoney(amount)} đ` : `-${formatMoney(amount)} đ`);
+        }
+
+        // Render toàn bộ giao diện UI
+        function renderUI() {
+            let totalBalance = 0;
+            let currentMonthIncome = 0;
+            let currentMonthExpense = 0;
+
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            // Tính toán tổng số dư & tổng thu/chi tháng này
+            transactions.forEach(tx => {
+                const txDate = new Date(tx.date);
+                const isThisMonth = txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
+
+                if (tx.type === 'income') {
+                    totalBalance += tx.amount;
+                    if (isThisMonth) currentMonthIncome += tx.amount;
+                } else {
+                    totalBalance -= tx.amount;
+                    if (isThisMonth) currentMonthExpense += tx.amount;
+                }
+            });
+
+            // Update DOM balance card
+            const totalElem = document.getElementById('total-balance');
+            totalElem.innerHTML = `${formatMoney(totalBalance)} <span class="text-lg font-normal text-slate-300">đ</span>`;
+            if (totalBalance < 0) {
+                totalElem.classList.add('text-rose-400');
+            } else {
+                totalElem.classList.remove('text-rose-400');
+            }
+
+            document.getElementById('month-income').innerText = `+${formatMoney(currentMonthIncome)} đ`;
+            document.getElementById('month-expense').innerText = `-${formatMoney(currentMonthExpense)} đ`;
+
+            // Render Lịch Sử Giao Dịch
+            const listContainer = document.getElementById('transaction-list');
+            listContainer.innerHTML = '';
+
+            if (transactions.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 text-xs">
+                        <i class="fa-regular fa-folder-open text-2xl mb-1 block"></i>
+                        Chưa có giao dịch nào
+                    </div>`;
+            } else {
+                transactions.slice(0, 20).forEach(tx => {
+                    const isIncome = tx.type === 'income';
+                    const dateObj = new Date(tx.date);
+                    const timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')} - ${dateObj.getDate()}/${dateObj.getMonth() + 1}`;
+
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100/80 transition';
+                    item.innerHTML = `
+                        <div class="flex items-center space-x-2.5">
+                            <div class="w-8 h-8 rounded-lg ${isIncome ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'} flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid ${isIncome ? 'fa-arrow-down' : 'fa-arrow-up'}"></i>
+                            </div>
+                            <div>
+                                <p class="text-xs font-semibold text-slate-800 line-clamp-1">${tx.note || (isIncome ? 'Tiết kiệm' : 'Chi tiêu')}</p>
+                                <p class="text-[10px] text-slate-400">${timeStr}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold ${isIncome ? 'text-emerald-600' : 'text-rose-600'}">
+                                ${isIncome ? '+' : '-'}${formatMoney(tx.amount)} đ
+                            </span>
+                            <button onclick="deleteTransaction(${tx.id})" class="text-slate-300 hover:text-rose-500 p-1">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                    listContainer.appendChild(item);
+                });
+            }
+
+            // Update Chart
+            updateChart();
+        }
+
+        // Xóa 1 giao dịch
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveDataToStorage();
+            renderUI();
+            showToast('Đã xóa giao dịch');
+        }
+
+        // Xóa tất cả
+        function confirmClearAll() {
+            if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử giao dịch?')) {
+                transactions = [];
+                saveDataToStorage();
+                renderUI();
+                showToast('Đã dọn dẹp lịch sử');
+            }
+        }
+
+        // Khởi tạo Biểu đồ đường Chart.js
+        function initChart() {
+            const ctx = document.getElementById('balanceChart').getContext('2d');
+            balanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Số dư (VNĐ)',
+                        data: [],
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#16a34a'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ' Số dư: ' + formatMoney(context.raw) + ' đ';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 9 }, color: '#94a3b8' }
+                        },
+                        y: {
+                            grid: { color: '#f1f5f9' },
+                            ticks: {
+                                font: { size: 9 },
+                                color: '#94a3b8',
+                                callback: function(value) {
+                                    if (value >= 1000000) return (value/1000000) + 'M';
+                                    if (value >= 1000) return (value/1000) + 'k';
+                                    return value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            updateChart();
+        }
+
+        // Cập nhật dữ liệu vào biểu đồ
+        function updateChart() {
+            if (!balanceChart) return;
+
+            // Lấy 10 giao dịch gần nhất đảo ngược lại để vẽ theo thời gian tăng dần
+            const recentTx = [...transactions].reverse().slice(-10);
+
+            let runningBalance = 0;
+            const labels = [];
+            const dataPoints = [];
+
+            // Để tính đúng số dư tích lũy qua từng mốc, ta tính từ tổng số dư ban đầu
+            // Hoặc tính xu hướng số dư chạy qua 10 mốc gần nhất
+            let baseBalance = 0;
+            
+            // Tính số dư bắt đầu trước mốc 10 giao dịch gần nhất
+            const remainingTxCount = transactions.length - recentTx.length;
+            const olderTx = [...transactions].reverse().slice(0, remainingTxCount);
+            olderTx.forEach(t => {
+                baseBalance += (t.type === 'income' ? t.amount : -t.amount);
+            });
+
+            runningBalance = baseBalance;
+
+            recentTx.forEach((tx, idx) => {
+                runningBalance += (tx.type === 'income' ? tx.amount : -tx.amount);
+                const d = new Date(tx.date);
+                labels.push(`${d.getDate()}/${d.getMonth()+1}`);
+                dataPoints.push(runningBalance);
+            });
+
+            balanceChart.data.labels = labels;
+            balanceChart.data.datasets[0].data = dataPoints;
+            balanceChart.update();
+        }
+
+        // Xử lý Modal Tùy Chỉnh
+        function openCustomModal(type = 'income') {
+            document.getElementById('customModal').classList.remove('hidden');
+            if (type === 'income') {
+                document.getElementById('typeIncome').checked = true;
+            } else {
+                document.getElementById('typeExpense').checked = true;
+            }
+        }
+
+        function closeCustomModal() {
+            document.getElementById('customModal').classList.add('hidden');
+            document.getElementById('customForm').reset();
+        }
+
+        function handleCustomSubmit(e) {
+            e.preventDefault();
+            const type = document.querySelector('input[name="txType"]:checked').value;
+            const amount = parseFloat(document.getElementById('customAmount').value);
+            const note = document.getElementById('customNote').value.trim();
+
+            if (!amount || amount <= 0) return;
+
+            quickTransaction(type, amount, note || (type === 'income' ? 'Tiết kiệm tùy chỉnh' : 'Chi tiêu tùy chỉnh'));
+            closeCustomModal();
+        }
+
+        // Xử lý Modal Thống Kê Tổng Kết Tháng
+        function openSettlementModal() {
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            let income = 0;
+            let expense = 0;
+
+            transactions.forEach(tx => {
+                const d = new Date(tx.date);
+                if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+                    if (tx.type === 'income') income += tx.amount;
+                    else expense += tx.amount;
+                }
+            });
+
+            const net = income - expense;
+
+            document.getElementById('settlement-income').innerText = `+${formatMoney(income)} đ`;
+            document.getElementById('settlement-expense').innerText = `-${formatMoney(expense)} đ`;
+            
+            const netElem = document.getElementById('settlement-net');
+            netElem.innerText = `${net >= 0 ? '+' : ''}${formatMoney(net)} đ`;
+            netElem.className = `font-bold ${net >= 0 ? 'text-emerald-600' : 'text-rose-600'}`;
+
+            // Tạo thông báo tổng kết thân thiện
+            const msgElem = document.getElementById('settlement-message');
+            if (net > 0) {
+                msgElem.className = "bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-center text-xs text-emerald-800 font-medium";
+                msgElem.innerHTML = `🎉 <b>Tuyệt vời!</b> Trong Tháng ${currentMonth+1}, bạn đã tiết kiệm ròng được <b>${formatMoney(net)} đ</b>. Hãy tiếp tục duy trì phong độ nhé!`;
+            } else if (net < 0) {
+                msgElem.className = "bg-rose-50 border border-rose-200 rounded-xl p-3 text-center text-xs text-rose-800 font-medium";
+                msgElem.innerHTML = `⚠️ <b>Cảnh báo nhẹ:</b> Tháng này bạn đã tiêu vượt mức tiết kiệm <b>${formatMoney(Math.abs(net))} đ</b>. Thắt chặt chi tiêu hơn vào tháng sau nhé!`;
+            } else {
+                msgElem.className = "bg-slate-100 border border-slate-200 rounded-xl p-3 text-center text-xs text-slate-700 font-medium";
+                msgElem.innerHTML = `⚖️ Thu nhập tiết kiệm và chi tiêu tháng này của bạn đang hòa vốn (0 đ).`;
+            }
+
+            document.getElementById('settlementModal').classList.remove('hidden');
+        }
+
+        function closeSettlementModal() {
+            document.getElementById('settlementModal').classList.add('hidden');
+        }
+
+        // Thông báo Toast nhỏ
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
